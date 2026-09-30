@@ -325,7 +325,8 @@ def save_music(f, each):
         if has_template(each["albumartist"]):
             f["albumartist"] = ConstantTemplate(each["albumartist"]).resolve_data(var_dict)
         else:
-            f["albumartist"] = each["albumartist"]
+            albumartists = [a.strip() for a in ARTIST_SPLIT.split(each["albumartist"]) if a.strip()]
+            f.set("albumartist", albumartists)
     if each.get("discnumber", None):
         if has_template(each["discnumber"]):
             f["discnumber"] = ConstantTemplate(each["discnumber"]).resolve_data(var_dict)

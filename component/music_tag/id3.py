@@ -243,15 +243,22 @@ class Id3File(AudioFile):
     def _ft_setter(self, key, md_val, appendable=True):
         self.mfile.tags.delall(key)
         kls = getattr(mutagen.id3, key.split(':')[0])
-        
+
         kwargs = {}
         _o = kls()
         if hasattr(_o, 'lang'):
             # so, it's a little anglo-centric to do this, but
             # this matches the behavior of kid3 and MusicBrainz Picard
             kwargs['lang'] = 'eng'
-        
-        self.mfile.tags.add(kls(text=str(md_val), **kwargs))
+
+        # md_val 是 MetadataItem 包装;str() 会触发 ", " 连接,把多歌手压成
+        # 单值。文本框(T-frame)取原始值列表交给 mutagen 保留多值;
+        # USLT/COMM 等非文本框的 text 必须是字符串,维持原有行为。
+        if hasattr(md_val, 'values') and issubclass(kls, mutagen.id3.TextFrame):
+            text = list(md_val.values) or ['']
+        else:
+            text = str(md_val)
+        self.mfile.tags.add(kls(text=text, **kwargs))
 
     def _ft_rmtag(self, key):
         self.mfile.tags.delall(key)
