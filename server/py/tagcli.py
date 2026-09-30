@@ -28,6 +28,9 @@ from component import music_tag  # noqa: E402
 from mutagen.flac import VCFLACDict  # noqa: E402
 from mutagen.id3 import ID3, TXXX  # noqa: E402
 
+# 多歌手分隔符:分号为主(歌手名里可以安全包含逗号),逗号兼容旧数据
+ARTIST_SPLIT = re.compile(r"[;,]")
+
 chinese_pattern = re.compile(r'[\u4e00-\u9fa5]')
 english_pattern = re.compile(r'[a-zA-Z]')
 japanese_pattern = re.compile(r'[\u0800-\u4e00]')
@@ -299,7 +302,7 @@ def save_music(f, each):
             artist = ConstantTemplate(each["artist"]).resolve_data(var_dict)
         else:
             artist = each["artist"]
-        artists = artist.split(",")
+        artists = [a.strip() for a in ARTIST_SPLIT.split(artist) if a.strip()]
         f.set("artist", artists)
     if each.get("album", None) is not None:
         if has_template(each["album"]):

@@ -30,6 +30,12 @@ const (
 	maxTreeNodes = 100000
 )
 
+// junkDirs are vendor metadata directories that never belong in a tag editor
+// tree (Synology thumbnail/recycle metadata follows files into every folder).
+var junkDirs = map[string]bool{
+	"@eaDir": true,
+}
+
 type fileNode struct {
 	ID         int         `json:"id"`
 	Name       string      `json:"name"`
@@ -134,6 +140,9 @@ func (b *treeBuilder) build(dirPath string, depth int) []fileNode {
 			continue
 		}
 		name := entry.Name()
+		if entry.IsDir() && junkDirs[name] {
+			continue
+		}
 		fileData = append(fileData, fileEntry{
 			Name:       name,
 			Path:       dirPath + "/" + name,
