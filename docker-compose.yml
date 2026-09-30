@@ -8,6 +8,8 @@ services:
     environment:
       # 默认免登录，内网直接使用；需要登录验证时设为 true（默认账号 admin/admin）
       LOGIN_REQUIRED: "${LOGIN_REQUIRED:-false}"
+      # 文件搜索默认递归所有子目录；设为 false 恢复仅列当前目录
+      FILE_LIST_RECURSIVE: "${FILE_LIST_RECURSIVE:-true}"
       # optional: preset the admin password instead of the default admin/admin
       ADMIN_PASSWORD: "${ADMIN_PASSWORD:-}"
       # optional: fixed JWT signing secret (auto-generated & persisted if empty)

@@ -24,6 +24,10 @@ type Config struct {
 	// LoginRequired turns on JWT auth for the API. Default is off: the tool
 	// runs on a trusted home LAN and the UI works without a login page.
 	LoginRequired bool
+	// RecursiveFileList makes /api/file_list return the whole subtree under
+	// the requested path, so the UI search box matches files in any
+	// subdirectory. Default on.
+	RecursiveFileList bool
 }
 
 func Load() *Config {
@@ -57,12 +61,23 @@ func Load() *Config {
 	c.FPCalcPath = resolveFPCalc()
 	c.StaticDir = abs(env("STATIC_DIR", "static"))
 	c.LoginRequired = boolEnv("LOGIN_REQUIRED") || boolEnv("SITE_LOGIN")
+	c.RecursiveFileList = !boolEnvFalse("FILE_LIST_RECURSIVE")
 	return c
 }
 
 func boolEnv(key string) bool {
 	switch strings.ToLower(os.Getenv(key)) {
 	case "1", "true", "yes", "on":
+		return true
+	}
+	return false
+}
+
+// boolEnvFalse is true unless the variable is explicitly set to a falsy value;
+// absent variables count as true so recursive listing is the default.
+func boolEnvFalse(key string) bool {
+	switch strings.ToLower(os.Getenv(key)) {
+	case "0", "false", "no", "off":
 		return true
 	}
 	return false

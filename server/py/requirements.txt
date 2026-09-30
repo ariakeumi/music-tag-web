@@ -1,3 +1,5 @@
 # Python deps for the tag CLI sidecar (server/py/tagcli.py)
 mutagen>=1.47
 requests>=2.31
+# artwork thumbnail generation (music_tag raw_thumbnail -> PIL)
+pillow>=10.0

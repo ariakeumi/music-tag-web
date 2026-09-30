@@ -28,7 +28,12 @@ func (s *Server) HandleMusicID3(w http.ResponseWriter, r *http.Request) {
 		Success(w, nil)
 		return
 	}
-	data, err := s.Tags.Read(filePath + "/" + body.FileName)
+	resolved, err := resolveMusicFile(filePath, body.FileName)
+	if err != nil {
+		Failure(w, err.Error())
+		return
+	}
+	data, err := s.Tags.Read(resolved)
 	if err != nil {
 		Failure(w, err.Error())
 		return
@@ -53,8 +58,23 @@ func (s *Server) HandleUpdateID3(w http.ResponseWriter, r *http.Request) {
 }
 
 // writeID3 delegates to the Python tag CLI and records a success Task row
-// per updated file, mirroring update_music_info.
+// per updated file, mirroring update_music_info. Missing paths are resolved
+// by unique basename under their directory (stale tree paths from the
+// recursive file list never silently address the wrong file).
 func (s *Server) writeID3(items []map[string]any) error {
+	for _, item := range items {
+		fullPath, _ := item["file_full_path"].(string)
+		if fullPath == "" {
+			continue
+		}
+		if _, err := os.Stat(fullPath); err != nil {
+			resolved, err := resolveMusicFile(filepath.Dir(fullPath), filepath.Base(fullPath))
+			if err != nil {
+				continue
+			}
+			item["file_full_path"] = resolved
+		}
+	}
 	results, err := s.Tags.Write(items)
 	if err != nil {
 		return err

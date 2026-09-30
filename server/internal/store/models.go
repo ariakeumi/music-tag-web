@@ -183,3 +183,34 @@ func (s *Store) TaskStateMap(parentPath string) (map[string]string, error) {
 	}
 	return out, rows.Err()
 }
+
+// TaskStatesUnderPrefix returns parent_path -> (filename -> state) for every
+// task recorded at or below prefix, used by recursive file listings.
+func (s *Store) TaskStatesUnderPrefix(prefix string) (map[string]map[string]string, error) {
+	prefix = strings.TrimSuffix(prefix, "/")
+	pattern := escapeLike(prefix) + "/%"
+	rows, err := s.DB.Query(`SELECT parent_path, filename, state FROM tasks
+		WHERE parent_path = ? OR parent_path LIKE ? ESCAPE '\'`, prefix, pattern)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]map[string]string{}
+	for rows.Next() {
+		var parent, name, state string
+		if err := rows.Scan(&parent, &name, &state); err != nil {
+			return nil, err
+		}
+		if out[parent] == nil {
+			out[parent] = map[string]string{}
+		}
+		out[parent][name] = state
+	}
+	return out, rows.Err()
+}
+
+func escapeLike(s string) string {
+	s = strings.ReplaceAll(s, `\`, `\\`)
+	s = strings.ReplaceAll(s, `%`, `\%`)
+	return strings.ReplaceAll(s, `_`, `\_`)
+}

@@ -18,8 +18,9 @@ LABEL title="Music Tag Web | 音乐标签网页版 (Go)"
 LABEL description="『音乐标签』Web版是一款可以编辑歌曲的标题，专辑，艺术家，歌词，封面等信息的应用程序"
 LABEL authors="xhongc"
 
-# Python side: audio tag I/O only (mutagen via component/music_tag, requests for cover downloads)
-RUN pip install --no-cache-dir mutagen requests
+# Python side: audio tag I/O only (mutagen via component/music_tag, requests
+# for cover downloads, pillow for artwork thumbnails)
+RUN pip install --no-cache-dir mutagen requests pillow
 
 WORKDIR /app
 COPY --from=build /out/music-tag-server ./music-tag-server
