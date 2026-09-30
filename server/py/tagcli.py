@@ -277,47 +277,54 @@ def download_image(url):
     return None
 
 
+def has_template(v):
+    # music_id3 returns numeric fields (tracknumber/discnumber/year) as JSON
+    # numbers; the save payload round-trips them unchanged, so template
+    # checks must tolerate non-strings.
+    return isinstance(v, str) and "${" in v
+
+
 def save_music(f, each):
     base_filename = ".".join(os.path.basename(f.filename).split(".")[:-1])
     file_ext = os.path.basename(f.filename).split(".")[-1]
 
     var_dict = MusicIDS(file=f).var_dict()
     if each.get("title", None):
-        if "${" in each["title"]:
+        if has_template(each["title"]):
             f["title"] = ConstantTemplate(each["title"]).resolve_data(var_dict)
         else:
             f["title"] = each["title"]
     if each.get("artist", None) is not None:
-        if "${" in each["artist"]:
+        if has_template(each["artist"]):
             artist = ConstantTemplate(each["artist"]).resolve_data(var_dict)
         else:
             artist = each["artist"]
         artists = artist.split(",")
         f.set("artist", artists)
     if each.get("album", None) is not None:
-        if "${" in each["album"]:
+        if has_template(each["album"]):
             f["album"] = ConstantTemplate(each["album"]).resolve_data(var_dict)
         else:
             f["album"] = each["album"]
     if each.get("albumartist", None):
-        if "${" in each["albumartist"]:
+        if has_template(each["albumartist"]):
             f["albumartist"] = ConstantTemplate(each["albumartist"]).resolve_data(var_dict)
         else:
             f["albumartist"] = each["albumartist"]
     if each.get("discnumber", None):
-        if "${" in each["discnumber"]:
+        if has_template(each["discnumber"]):
             f["discnumber"] = ConstantTemplate(each["discnumber"]).resolve_data(var_dict)
         else:
             try:
-                f["discnumber"] = int(each["discnumber"].split("/")[0].strip())
+                f["discnumber"] = int(str(each["discnumber"]).split("/")[0].strip())
             except Exception:
                 f["discnumber"] = 0
     if each.get("tracknumber", None):
-        if "${" in each["tracknumber"]:
+        if has_template(each["tracknumber"]):
             f["tracknumber"] = ConstantTemplate(each["tracknumber"]).resolve_data(var_dict)
         else:
             try:
-                f["tracknumber"] = int(each["tracknumber"].split("/")[0].strip())
+                f["tracknumber"] = int(str(each["tracknumber"]).split("/")[0].strip())
             except Exception:
                 f["tracknumber"] = 0
     if each.get("genre", None):
@@ -394,7 +401,7 @@ def save_music(f, each):
     f.save()
     # 重命名文件名称
     if each.get("filename", None):
-        if "${" in each["filename"]:
+        if has_template(each["filename"]):
             each["filename"] = ConstantTemplate(each["filename"]).resolve_data(var_dict)
         if not each["filename"].endswith(file_ext):
             each["filename"] = "{}.{}".format(each["filename"], file_ext)
