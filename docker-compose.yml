@@ -1,0 +1,18 @@
+services:
+  music-tag:
+    build: .
+    image: xhongc/music_tag_web:latest
+    container_name: music-tag-web
+    ports:
+      - "8002:8002"
+    environment:
+      # 默认免登录，内网直接使用；需要登录验证时设为 true（默认账号 admin/admin）
+      LOGIN_REQUIRED: "${LOGIN_REQUIRED:-false}"
+      # optional: preset the admin password instead of the default admin/admin
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:-}"
+      # optional: fixed JWT signing secret (auto-generated & persisted if empty)
+      JWT_SECRET: "${JWT_SECRET:-}"
+    volumes:
+      - /path/to/your/music:/app/media:rw
+      - /path/to/your/config:/app/data
+    restart: unless-stopped

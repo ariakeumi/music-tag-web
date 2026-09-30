@@ -1,0 +1,3 @@
+# Python deps for the tag CLI sidecar (server/py/tagcli.py)
+mutagen>=1.47
+requests>=2.31

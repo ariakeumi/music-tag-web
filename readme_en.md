@@ -11,7 +11,7 @@ Music Tag Web is a web-based music metadata editor that can edit song title, alb
 It supports FLAC, APE, WAV, AIFF, WV, TTA, MP3, M4A, OGG, MPC, OPUS, WMA, DSF, MP4 and other audio formats.
 
 <div class="column" align="middle">
-    <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/Python-3.9-blue.svg" alt=""></a>
+    <a href="https://go.dev/"><img src="https://img.shields.io/badge/Go-1.27-00ADD8.svg" alt=""></a>
    <img src="https://img.shields.io/github/stars/xhongc/music-tag-web?color=informational&label=Stars">
   <img src="https://img.shields.io/docker/pulls/xhongc/music_tag_web" alt="docker-pull-count" />
   <img src="https://img.shields.io/badge/platform-amd64/arm64-pink?style=plastic" alt="docker-platform" />
@@ -29,7 +29,6 @@ Why a web version? When using Navidrome, my music library is stored on a remote 
 - Batch conversion between Traditional Chinese and Simplified Chinese metadata
 - Filename parsing/unpacking to fill missing metadata
 - Batch text replacement for metadata cleanup
-- Audio format conversion via ffmpeg
 - Whole-track cutting/splitting support
 - Multiple metadata sources
 - Lyric translation support
@@ -54,74 +53,20 @@ Demo account: `admin/admin`
 
 Use the V2 guide for V2 deployment.
 
-## V1 Deployment
+## Docker Deployment (Recommended)
+The image is published on Docker Hub for amd64 / arm64 (Synology, QNAP, Raspberry Pi):
 
-The image is available on Docker Hub.
-
-### 1. Pull image
-
+### 1. Pull the image
 ```bash
 docker pull xhongc/music_tag_web:latest
 ```
 
-Generate and save a unique deployment secret, then pass it as `DJANGO_SECRET_KEY`:
+### 2. Run the container (mount your NAS music folder)
 ```bash
-export DJANGO_SECRET_KEY="$(openssl rand -hex 32)"
+docker run -d -p 8002:8002 -v /path/to/your/music:/app/media -v /path/to/your/config:/app/data --restart=always xhongc/music_tag_web:latest
 ```
 
-### 2. Run container
-
-```bash
-docker run -d -p 8001:8001 -e DJANGO_SECRET_KEY="$DJANGO_SECRET_KEY" -v /path/to/your/music:/app/media -v /path/to/your/config:/app/data --restart=always xhongc/music_tag_web:latest
-```
-
-Or deploy with Portainer Stacks (docker compose):
-
-![img_1.png](img_1.png)
-
-```yaml
-version: '3'
-
-services:
-  music-tag:
-    image: xhongc/music_tag_web:latest
-    container_name: music-tag-web
-    ports:
-      - "8001:8001"
-    environment:
-      DJANGO_SECRET_KEY: "${DJANGO_SECRET_KEY:?Set a unique DJANGO_SECRET_KEY}"
-    volumes:
-      - /path/to/your/music:/app/media:rw
-      - /path/to/your/config:/app/data
-    command: /start
-    restart: unless-stopped
-```
-
-Set `/path/to/your/music` to your music directory and `/path/to/your/config` to your config directory.
-
-3. Visit `127.0.0.1:8001/admin`.
-Default account/password: `admin/admin`. Change the default password after login.
-
-![img_7.png](img_7.png)
-
-## V2 Deployment
-
-> Compared with V1, V2 changes container port to `8002` and removes `command: /start` in Docker Compose.
-
-### 1. Pull image
-
-```bash
-docker pull xhongc/music_tag_web:latest
-```
-
-### 2. Run container
-
-```bash
-docker run -d -p 8002:8002 -e DJANGO_SECRET_KEY="$DJANGO_SECRET_KEY" -v /path/to/your/music:/app/media -v /path/to/your/config:/app/data --restart=always xhongc/music_tag_web:latest
-```
-
-Or:
-
+Or deploy with docker compose (Portainer / Synology Container Manager):
 ```yaml
 version: '3'
 
@@ -132,17 +77,25 @@ services:
     ports:
       - "8002:8002"
     environment:
-      DJANGO_SECRET_KEY: "${DJANGO_SECRET_KEY:?Set a unique DJANGO_SECRET_KEY}"
+      # optional: preset the admin password (default admin/admin)
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:-}"
     volumes:
       - /path/to/your/music:/app/media:rw
       - /path/to/your/config:/app/data
     restart: unless-stopped
 ```
+> Important: replace `/path/to/your/music` with your NAS music folder, and `/path/to/your/config` with a persistent config folder (the SQLite database and JWT secret live there)!
 
-Set `/path/to/your/music` to your music directory and `/path/to/your/config` to your config directory.
+3. Visit `http://127.0.0.1:8002`.
+**Login is disabled by default** for trusted home networks; set `LOGIN_REQUIRED=true` to require login (default `admin/admin`, preset via `ADMIN_PASSWORD`).
 
-3. Visit `127.0.0.1:8002/admin`.
-Default account/password: `admin/admin`. Change the default password after login.
+### Build and run locally (without Docker)
+```bash
+cd server
+go build -o music-tag-server .
+python3 -m pip install -r py/requirements.txt
+MEDIA_ROOT=/path/to/music STATIC_DIR=../static ./music-tag-server
+```
 
 # 📷 User Interface (V2)
 

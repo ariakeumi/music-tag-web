@@ -11,11 +11,13 @@ Music Tag Web 是一款**开源 self-hosted 自托管 Docker 音乐标签编辑�
 
 支持 FLAC, APE, WAV, AIFF, WV, TTA, MP3, M4A, OGG, MPC, OPUS, WMA, DSF, MP4 全格式音频 ID3 标签批量编辑、刮削、修复整理，所有曲库文件本地存储不上传第三方，隐私安全，适配群晖、威联通、Linux 小主机 Docker 部署。
 <div class="column" align="middle">
-    <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/Python-3.9-blue.svg" alt=""></a>
+    <a href="https://go.dev/"><img src="https://img.shields.io/badge/Go-1.27-00ADD8.svg" alt=""></a>
    <img src="https://img.shields.io/github/stars/xhongc/music-tag-web?color=informational&label=Stars">
   <img src="https://img.shields.io/docker/pulls/xhongc/music_tag_web" alt="docker-pull-count" />
   <img src="https://img.shields.io/badge/platform-amd64/arm64-pink?style=plastic" alt="docker-platform" />
 </div>
+
+> 技术栈：Go（单二进制后端）+ SQLite（零配置数据库）+ Python 标签组件（mutagen）；后台任务由 goroutine 池驱动，无 Celery/Redis/Nginx 依赖。
 
 # 🎉 核心功能 Feature（Self-hosted Docker 专属优势）
 为什么开发 Web 自托管版本？
@@ -30,7 +32,6 @@ Music Tag Web 采用 Docker 容器一键部署，作为影音服务配套边车�
 - 批量繁简转换，一键转换歌曲、专辑、艺术家标签简体/繁体
 - 文件名拆分解包，自动从文件名提取缺失歌曲、歌手、专辑信息补全标签
 - 批量文本替换，清理曲库脏标签、乱码、多余特殊字符
-- 集成 ffmpeg，支持无损音乐格式批量转换
 - 整轨 APE/FLAC/CUE 文件自动切割分轨并补全独立标签
 - 多源音乐元数据接口，多渠道兜底刮削曲库信息
 - 内嵌歌词翻译，批量双语歌词写入音频文件
@@ -57,7 +58,7 @@ DEMO 地址账号密码为：admin/admin
 
 > V2 为当前推荐部署方式，所有 NAS、Linux Homelab 用户优先使用手册 V2 部署！
 
-## V1 旧版 Docker 容器部署方式
+## V2 版本 Docker 部署方式（推荐）
 镜像已上传至 Docker Hub，支持 amd64 / arm64 架构群晖、威联通、树莓派设备一键安装：
 
 ### 1. 从Docker Hub拉取自托管音乐标签工具镜像
@@ -65,14 +66,9 @@ DEMO 地址账号密码为：admin/admin
 docker pull xhongc/music_tag_web:latest
 ```
 
-先生成并保存一个每个部署独有的 Django 密钥，然后将其作为 `DJANGO_SECRET_KEY` 传入容器：
+### 2. 一键运行容器命令
 ```bash
-export DJANGO_SECRET_KEY="$(openssl rand -hex 32)"
-```
-
-### 2. 运行Docker容器镜像（挂载本地NAS音乐目录）
-```bash
-docker run -d -p 8001:8001 -e DJANGO_SECRET_KEY="$DJANGO_SECRET_KEY" -v /path/to/your/music:/app/media -v /path/to/your/config:/app/data --restart=always xhongc/music_tag_web:latest
+docker run -d -p 8002:8002 -v /path/to/your/music:/app/media -v /path/to/your/config:/app/data --restart=always xhongc/music_tag_web:latest
 ```
 或者 使用 Portainer Stacks 可视化部署 docker compose（NAS用户常用）
    ![img_1.png](img_1.png)
@@ -85,52 +81,27 @@ services:
     image: xhongc/music_tag_web:latest
     container_name: music-tag-web
     ports:
-      - "8001:8001"
-    environment:
-      DJANGO_SECRET_KEY: "${DJANGO_SECRET_KEY:?Set a unique DJANGO_SECRET_KEY}"
-    volumes:
-      - /path/to/your/music:/app/media:rw
-      - /path/to/your/config:/app/data
-    command: /start
-    restart: unless-stopped
-```
-> 重要说明：`/path/to/your/music` 替换为你的NAS/服务器本地音乐文件夹路径！`/path/to/your/config` 改为持久化配置文件路径！
-
-3. 访问地址：127.0.0.1:8001/admin，默认账号密码 admin/admin，首次登录务必修改默认密码
-![img_7.png](img_7.png)
-
-## V2 新版推荐部署方式（主流 self-hosted 用户首选）
-> V2 与 V1部署区别：容器内部服务端口调整为 8002，Docker Compose 部署移除 `command: /start` 配置，兼容性更好，适配绝大多数NAS系统
-
-### 1. 拉取最新Docker镜像
-```bash
-docker pull xhongc/music_tag_web:latest
-```
-
-### 2. 一键运行容器命令
-```bash
-docker run -d -p 8002:8002 -e DJANGO_SECRET_KEY="$DJANGO_SECRET_KEY" -v /path/to/your/music:/app/media -v /path/to/your/config:/app/data --restart=always xhongc/music_tag_web:latest
-```
-docker-compose.yml 完整配置（Portainer/群晖容器管理器直接复制使用）：
-```yaml
-version: '3'
-
-services:
-  music-tag:
-    image: xhongc/music_tag_web:latest
-    container_name: music-tag-web
-    ports:
       - "8002:8002"
     environment:
-      DJANGO_SECRET_KEY: "${DJANGO_SECRET_KEY:?Set a unique DJANGO_SECRET_KEY}"
+      # 可选：预设管理员密码（默认 admin/admin）
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:-}"
     volumes:
       - /path/to/your/music:/app/media:rw
       - /path/to/your/config:/app/data
     restart: unless-stopped
 ```
-> 提示：`/path/to/your/music` 替换NAS本地无损曲库目录；`/path/to/your/config` 自定义配置持久化目录！
+> 重要说明：`/path/to/your/music` 替换为你的NAS/服务器本地音乐文件夹路径！`/path/to/your/config` 改为持久化配置文件路径（SQLite 数据库与 JWT 密钥保存在这里）！
 
-3. 本地访问地址：127.0.0.1:8002/admin，默认账号密码 admin/admin，上线前修改管理员密码
+3. 本地访问地址：127.0.0.1:8002，**默认免登录**（内网直接使用）；如需登录验证，设置环境变量 `LOGIN_REQUIRED=true`（默认账号密码 admin/admin，可用 `ADMIN_PASSWORD` 预设）
+![img_7.png](img_7.png)
+
+### 本地编译运行（非 Docker）
+```bash
+cd server
+go build -o music-tag-server .
+python3 -m pip install -r py/requirements.txt
+MEDIA_ROOT=/path/to/music STATIC_DIR=../static ./music-tag-server
+```
 
 
 # 📷 V2 版本操作界面 User Interface
