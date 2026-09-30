@@ -115,17 +115,29 @@ class MusicIDS:
         except Exception:
             return ""
 
+    @staticmethod
+    def _join_multi(tag, sep="; "):
+        # music_tag 的 .value 把多值字段用 ", " 连接;这里改为 "; ",
+        # 与多歌手输入分隔符一致,避免保存后显示被"自动改成逗号"
+        try:
+            vals = [str(v) for v in tag.values]
+        except Exception:
+            vals = None
+        if not vals:
+            return tag.value
+        return sep.join(vals)
+
     @property
     def album_artist(self):
-        return self.file["albumartist"].value
+        return self._join_multi(self.file["albumartist"])
 
     @property
     def artist_name(self):
-        return self.file["artist"].value
+        return self._join_multi(self.file["artist"])
 
     @property
     def artist(self):
-        return self.file["artist"].value
+        return self._join_multi(self.file["artist"])
 
     @property
     def year(self):
